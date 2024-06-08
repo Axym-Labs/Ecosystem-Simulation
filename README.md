@@ -1,5 +1,5 @@
 
-**Game of life with extra steps**
+### **Game of life with extra steps**
 
 A 2d python ecosystem simulation using PyGame
 Based on creatures and resources
