@@ -1,15 +1,13 @@
 import pygame
-from ecosystem.Game import Game, GameConfiguration, GameState, GameRunningConfig
+from ecosystem.Game import Game
 from typing import Callable
 import time
-from dataclasses import dataclass, field
-from matplotlib.pyplot import plot
 from ecosystem import ResourceUtil
 from ecosystem import CreatureUtil
 from ecosystem.Creature import Creature
-from ecosystem.Resource import Resource
 from ecosystem import Base
 from ecosystem import Action
+from ecosystem import ActionUtil
 from ecosystem import GameUtil
 
 
@@ -55,7 +53,7 @@ class GameRunner():
     def Update(self):
         self.frame += 1
 
-        print(f'Frame: {self.frame}')
+        # print(f'Frame: {self.frame}')
 
         self.clock.tick(60)
 
@@ -64,16 +62,16 @@ class GameRunner():
                 self.game.State.Running = False
 
         self.screen.fill((0, 0, 0))
-        self.executeInnerGameFn(lambda: ResourceUtil.render(self.game, self.screen), 'renderResources', False)
 
         self.executeInnerGameFn(lambda: CreatureUtil.incrementAge(self.game), 'incrementAge', True)
         self.executeInnerGameFn(lambda: CreatureUtil.depleteResources(self.game), 'depleteResources', True)
         self.executeInnerGameFn(lambda: CreatureUtil.updateHealth(self.game), 'updateHealth', True)
         self.executeInnerGameFn(lambda: CreatureUtil.removeDeadCreatures(self.game), 'removeDeadCreatures', True)
 
-        self.executeInnerGameFn(lambda: CreatureUtil.render(self.game, self.screen), 'render', False)
+        self.executeInnerGameFn(lambda: ActionUtil.executeAllActions(self.game, ActionUtil.getNextActionBasedOnGenome), 'executeAllActions', True)
 
-        self.executeInnerGameFn(lambda: CreatureUtil.executeAllActions(self.game, CreatureUtil.getNextActionBasedOnGenome), 'executeAllActions', set=True)
+        self.executeInnerGameFn(lambda: ResourceUtil.render(self.game, self.screen), 'renderResources', False)
+        self.executeInnerGameFn(lambda: CreatureUtil.render(self.game, self.screen), 'renderCreatures', False)
 
         pygame.display.flip()
 
@@ -108,7 +106,6 @@ class GameRunner():
                 fn()
         else:
             start = time.perf_counter()
-            countBefore = len(self.game.State.Creatures)
 
             if set:
                 self.game = fn()
@@ -116,8 +113,6 @@ class GameRunner():
                 fn()
 
             end = time.perf_counter()
-
-            # print(f'{description} took {(end - start) * 1000} ms to run.')
             
             if description not in self.performanceData:
                 self.performanceData[description] = []

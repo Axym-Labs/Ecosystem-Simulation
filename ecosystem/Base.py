@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Callable
-
+import numpy as np
 
 @dataclass()
 class Point():
@@ -22,3 +22,19 @@ def safeCond(parameter, condition: Callable) -> bool:
         return condition(parameter)
     except IndexError:
         return False
+    
+def randomPoint(mapDimensions: tuple[int, int]) -> Point:
+    return Point(
+        x=clampToInt(np.random.randint(0, mapDimensions[0]), 0, mapDimensions[0]-1),
+        y=clampToInt(np.random.randint(0, mapDimensions[1]), 0, mapDimensions[1]-1)
+    )
+
+
+def randomPointWithBias(mapDimensions: tuple[int, int], focusPoint: Point, bias: float) -> Point:
+    return Point(
+        x=clampToInt(np.random.normal(focusPoint.x, bias), 0, mapDimensions[0]-1),
+        y=clampToInt(np.random.normal(focusPoint.y, bias), 0, mapDimensions[1]-1)
+    )
+def randomPointWithCenterBias(mapDimensions: tuple[int, int], bias: float) -> Point:
+    center = Point(x=mapDimensions[0]//2, y=mapDimensions[1]//2)
+    return randomPointWithBias(mapDimensions, center, bias)

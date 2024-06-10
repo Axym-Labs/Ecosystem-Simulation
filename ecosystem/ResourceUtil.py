@@ -23,3 +23,7 @@ def getResourceColor(resource: Resource, resourceLength: int) -> tuple[int, int,
         clampToInt(255 * resource.containedResources.sum() / resourceLength, 0, 255)
     )
     return col
+
+
+def clampResource(game: Game, resource):
+    return np.clip(resource, 0, game.Configuration.MaxResourceValue)

@@ -26,7 +26,7 @@ class Creature():
     situation: CreatureSituation
     actionDescriptions: list[str]
     
-def createOneCreature(hash: int, genome: GenomeScalar, resources: np.ndarray, positionFn: Callable) -> Creature:
+def createOneCreature(hash: int, genome: GenomeScalar, resources: np.ndarray, position: Point) -> Creature:
     return Creature(
         hash,
         CreatureBasis(
@@ -36,7 +36,7 @@ def createOneCreature(hash: int, genome: GenomeScalar, resources: np.ndarray, po
             age=0,
             health=1,
             resources=resources,
-            position=positionFn()
+            position=position
         ),
         []
     )

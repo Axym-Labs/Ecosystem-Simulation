@@ -38,6 +38,9 @@ class GameConfiguration:
 
     ForceExitCondition: Callable
 
+    BornCreatureFn: Callable
+    BiparentalBornCreatureFn: Callable
+
 @dataclass
 class GameState():
     Running: bool
