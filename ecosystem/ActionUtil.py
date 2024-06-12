@@ -11,19 +11,24 @@ from ecosystem import Action
 
 def IsActionValid(game: Game, creatureIndex: int, action: Action.Action) -> bool:
 
+    # TODO remove
+    if game.Conf.OtherConfig['BlockInteraction']:
+        if action in [Action.Action.NeutralExchange, Action.Action.ConstructiveExchange, Action.Action.DestructiveExchange, Action.Action.LethalExchange, Action.Action.ReproduceBiparentally]:
+            return False
+
     if action == Action.Action.Stay or action == Action.Action.Die or action == Action.Action.Produce:
         return True
 
     elif action == Action.Action.Reproduce:
-        return len(game.State.Creatures) < game.Configuration.CreatureLimit
+        return len(game.State.Creatures) < game.Conf.CreatureLimit
 
     elif action == Action.Action.Consume:
         resourceIndex = findClosestResourceIndex(game, creatureIndex)
-        return closeTo(game.State.Creatures[creatureIndex].situation.position, game.State.Resources[resourceIndex].position, game.Configuration.MaxConsumptionDistance)
+        return closeTo(game.State.Creatures[creatureIndex].situation.position, game.State.Resources[resourceIndex].position, game.Conf.MaxConsumptionDistance)
 
     elif action in [Action.Action.MoveLeft, Action.Action.MoveRight, Action.Action.MoveUp, Action.Action.MoveDown]:
         creature = game.State.Creatures[creatureIndex]
-        step = game.Configuration.CreatureStepSize
+        step = game.Conf.CreatureStepSize
 
         if action == Action.Action.MoveLeft:
             stepLeftPos = Point(creature.situation.position.x - step, creature.situation.position.y)
@@ -31,7 +36,7 @@ def IsActionValid(game: Game, creatureIndex: int, action: Action.Action) -> bool
         
         if action == Action.Action.MoveRight:
             stepRightPos = Point(creature.situation.position.x + step, creature.situation.position.y)
-            return game.State.Creatures[creatureIndex].situation.position.x < game.Configuration.MapDimensions[0] -1 and noOverlap(game, stepRightPos)
+            return game.State.Creatures[creatureIndex].situation.position.x < game.Conf.MapDimensions[0] -1 and noOverlap(game, stepRightPos)
 
         if action == Action.Action.MoveUp:
             stepUpPos = Point(creature.situation.position.x, creature.situation.position.y - step)
@@ -39,15 +44,15 @@ def IsActionValid(game: Game, creatureIndex: int, action: Action.Action) -> bool
 
         if action == Action.Action.MoveDown:
             stepDownPos = Point(creature.situation.position.x, creature.situation.position.y + step)
-            return game.State.Creatures[creatureIndex].situation.position.y < game.Configuration.MapDimensions[1] -1 and noOverlap(game, stepDownPos)
+            return game.State.Creatures[creatureIndex].situation.position.y < game.Conf.MapDimensions[1] -1 and noOverlap(game, stepDownPos)
 
     elif action in [Action.Action.NeutralExchange, Action.Action.ConstructiveExchange, Action.Action.DestructiveExchange, Action.Action.LethalExchange, Action.Action.ReproduceBiparentally]:
         otherCreatureIndex = findClosestCreatureIndex(game, creatureIndex)
 
-        if action == Action.Action.ReproduceBiparentally and not len(game.State.Creatures) < game.Configuration.CreatureLimit:
+        if action == Action.Action.ReproduceBiparentally and not len(game.State.Creatures) < game.Conf.CreatureLimit:
             return False
         
-        return closeTo(game.State.Creatures[creatureIndex].situation.position, game.State.Creatures[otherCreatureIndex].situation.position, game.Configuration.MaxInteractionDistance)
+        return closeTo(game.State.Creatures[creatureIndex].situation.position, game.State.Creatures[otherCreatureIndex].situation.position, game.Conf.MaxInteractionDistance)
 
     raise NotImplementedError(f"Action {action} not implemented.")
 
@@ -82,12 +87,15 @@ def noOverlap(game: Game, point: Point) -> bool:
         for c in game.State.Creatures
     ])
 
-def getNextActionBasedOnGenome(game: Game, creatureIndex: int) -> Action.Action:
+def getNextActionBasedOnGenomeRandomly(game: Game, creatureIndex: int) -> Action.Action:
     creature = game.State.Creatures[creatureIndex]
     options = range(1, len(Action.Action) +1)
     actionIndex = int(np.random.choice(options, p=creature.base.genome.genes / creature.base.genome.genes.sum()))
     return Action.Action(actionIndex)
 
+def getNextActionBasedOnNNModel(game: Game, creatureIndex: int, dims: list[int]) -> Action.Action:
+    # TODO
+    raise NotImplementedError('NN model not implemented.')
 
 def executeAllActions(game: Game, decisionFn: Callable):
 
@@ -108,7 +116,7 @@ def executeAllActions(game: Game, decisionFn: Callable):
             resourceIndex = findClosestResourceIndex(game, i)
             resource = game.State.Resources[resourceIndex]
 
-            if closeTo(game.State.Creatures[i].situation.position, resource.position, game.Configuration.MaxConsumptionDistance):
+            if closeTo(game.State.Creatures[i].situation.position, resource.position, game.Conf.MaxConsumptionDistance):
                 game.State.Creatures[i].situation.resources = ResourceUtil.clampResource(game, game.State.Creatures[i].situation.resources + resource.containedResources)
                 game.State.Resources.pop(resourceIndex)
             
@@ -119,11 +127,11 @@ def executeAllActions(game: Game, decisionFn: Callable):
                 Resource.Resource(
                     hash=random.randint(0, 1_000_000_000),
                     position=creature.situation.position,
-                    containedResources=creature.situation.resources / game.Configuration.ProductionDivisor
+                    containedResources=creature.situation.resources / game.Conf.ProductionDivisor
                 )
             )
 
-            creature.situation.resources /= game.Configuration.ProductionDivisor
+            creature.situation.resources /= game.Conf.ProductionDivisor
 
         elif action == Action.Action.Die:
             creaturesToRemove.append(i)
@@ -133,24 +141,24 @@ def executeAllActions(game: Game, decisionFn: Callable):
 
         elif action == Action.Action.Reproduce:
             game.State.Creatures.append(
-                game.Configuration.BornCreatureFn(game, creature)
+                game.Conf.BornCreatureFn(game, creature)
             )
 
             otherCreatureIndex = len(game.State.Creatures)-1
 
-            game = exchangeResources(game, i, otherCreatureIndex, game.Configuration.ReproductiveInteractionDivisor)
+            game = exchangeResources(game, i, otherCreatureIndex, game.Conf.ReproductiveInteractionDivisor)
 
             if game.RunningConfig.Debug:
                 print('Reproduction of ' + str(i))
 
         elif action == Action.Action.MoveLeft:
-            game.State.Creatures[i].situation.position.x -= game.Configuration.CreatureStepSize
+            game.State.Creatures[i].situation.position.x -= game.Conf.CreatureStepSize
         elif action == Action.Action.MoveRight:
-            game.State.Creatures[i].situation.position.x += game.Configuration.CreatureStepSize
+            game.State.Creatures[i].situation.position.x += game.Conf.CreatureStepSize
         elif action == Action.Action.MoveUp:
-            game.State.Creatures[i].situation.position.y -= game.Configuration.CreatureStepSize
+            game.State.Creatures[i].situation.position.y -= game.Conf.CreatureStepSize
         elif action == Action.Action.MoveDown:
-            game.State.Creatures[i].situation.position.y += game.Configuration.CreatureStepSize
+            game.State.Creatures[i].situation.position.y += game.Conf.CreatureStepSize
 
         elif action == Action.Action.NeutralExchange:
             otherCreatureIndex = findClosestCreatureIndex(game, i)
@@ -161,14 +169,22 @@ def executeAllActions(game: Game, decisionFn: Callable):
 
         elif action == Action.Action.ConstructiveExchange:
             otherCreatureIndex = findClosestCreatureIndex(game, i)
-            game = exchangeResources(game, i, otherCreatureIndex, game.Configuration.ConstructiveInteractionDivisor)
+            game = exchangeResources(game, i, otherCreatureIndex, game.Conf.ConstructiveInteractionDivisor)
 
             if game.RunningConfig.Debug:
                 print('Constructive exchange between ' + str(i) + ' and ' + str(otherCreatureIndex))
 
         elif action == Action.Action.DestructiveExchange:
             otherCreatureIndex = findClosestCreatureIndex(game, i)
-            game = exchangeResources(game, i, otherCreatureIndex, 2 - game.Configuration.ConstructiveInteractionDivisor)
+            
+            shared_resources = game.State.Creatures[i].situation.resources + game.State.Creatures[otherCreatureIndex].situation.resources
+            shared_resources /= game.Conf.WinnerGetsAllDivisor
+
+            winner = random.choice([i, otherCreatureIndex])
+            loser = i if winner == otherCreatureIndex else otherCreatureIndex
+
+            game.State.Creatures[winner].situation.resources = ResourceUtil.clampResource(game, shared_resources)
+            game.State.Creatures[loser].situation.resources.fill(0)
 
             if game.RunningConfig.Debug:
                 print('Destructive exchange between ' + str(i) + ' and ' + str(otherCreatureIndex))
@@ -177,6 +193,7 @@ def executeAllActions(game: Game, decisionFn: Callable):
             otherCreatureIndex = findClosestCreatureIndex(game, i)
 
             shared_resources = game.State.Creatures[i].situation.resources + game.State.Creatures[otherCreatureIndex].situation.resources
+            shared_resources /= game.Conf.WinnerGetsAllDivisor
 
             winner = random.choice([i, otherCreatureIndex])
             loser = i if winner == otherCreatureIndex else otherCreatureIndex
@@ -193,10 +210,10 @@ def executeAllActions(game: Game, decisionFn: Callable):
             shared_resources = game.State.Creatures[i].situation.resources + game.State.Creatures[otherCreatureIndex].situation.resources
 
             game.State.Creatures.append(
-                game.Configuration.BiparentalBornCreatureFn(game, game.State.Creatures[i], game.State.Creatures[otherCreatureIndex], shared_resources)
+                game.Conf.BiparentalBornCreatureFn(game, game.State.Creatures[i], game.State.Creatures[otherCreatureIndex], shared_resources)
             )
 
-            exchangeResources(game, i, otherCreatureIndex, game.Configuration.BiparentalReproductiveInteractionDivisor)
+            exchangeResources(game, i, otherCreatureIndex, game.Conf.BiparentalReproductiveInteractionDivisor)
 
             if game.RunningConfig.Debug:
                 print('Biparental reproduction between ' + str(i) + ' and ' + str(otherCreatureIndex))

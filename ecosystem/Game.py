@@ -8,6 +8,8 @@ from ecosystem.Resource import Resource
 
 @dataclass(frozen=True)
 class GameConfiguration:
+    OtherConfig: dict
+
     MapDimensions: tuple[int, int]
     CreatureLimit: int
 
@@ -21,6 +23,7 @@ class GameConfiguration:
     CreatureStepSize: int
     
     ConstructiveInteractionDivisor: float
+    WinnerGetsAllDivisor: float
     ProductionDivisor: float
     ReproductiveInteractionDivisor: float
     BiparentalReproductiveInteractionDivisor: float
@@ -59,6 +62,6 @@ class GameRunningConfig():
 
 @dataclass
 class Game():
-    Configuration: GameConfiguration
+    Conf: GameConfiguration
     State: GameState
     RunningConfig: GameRunningConfig

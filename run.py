@@ -11,6 +11,8 @@ from ecosystem import Genome
 from ecosystem import GameRunner
 
 Conf = Game.GameConfiguration(
+
+    OtherConfig={"BlockInteraction": True},
     MapDimensions=(80, 60),
     CreatureLimit=100,
 
@@ -23,12 +25,13 @@ Conf = Game.GameConfiguration(
     MaxInteractionDistance = 2,
     CreatureStepSize = 1,
 
-    ConstructiveInteractionDivisor = 2.5,
-    ProductionDivisor = 1.25,
-    ReproductiveInteractionDivisor = 3,
-    BiparentalReproductiveInteractionDivisor = 3,
+    ConstructiveInteractionDivisor = 3,
+    WinnerGetsAllDivisor = 1.75,
+    ProductionDivisor = 2,
+    ReproductiveInteractionDivisor = 4,
+    BiparentalReproductiveInteractionDivisor = 4,
 
-    ResourceDepletionRate = 0.02,
+    ResourceDepletionRate = 0.04,
     HealthDepletionRate = 0.05,
     HealthGainRate = 0.02,
     MaxHealth = 2.0,
@@ -39,7 +42,7 @@ Conf = Game.GameConfiguration(
     DeathCondition=lambda game, i: game.State.Creatures[i].situation.health <= 0 or (game.State.Creatures[i].situation.age > 100 and random.random() < 0.1),
     TooFewResourcesFn=lambda game, i: game.State.Creatures[i].situation.resources.sum() < 1,
 
-    ForceExitCondition=lambda game, frame: len(game.State.Creatures) == 0 or frame > 20_0,
+    ForceExitCondition=lambda game, frame: len(game.State.Creatures) == 0 or frame > 20_000,
 
     BornCreatureFn=lambda game, parent: Creature.createOneCreature(
         hash=game.Configuration.HashFn(),
@@ -56,10 +59,10 @@ Conf = Game.GameConfiguration(
     )
 )
 
-CENTER_BIAS = 15
+CENTER_BIAS = 8
 
 creatures = Creature.createCreaturesRandomly(
-    20,
+    100,
     Conf.MapDimensions,
     lambda: Creature.createOneCreature(
         Conf.HashFn(),
@@ -69,18 +72,28 @@ creatures = Creature.createCreaturesRandomly(
     ),
 )
 
+RESOURCE_COUNT = 200
+
+resourceFocusPoints = [Base.randomPoint(Conf.MapDimensions) for _ in range(10)]
+
+i = 0
+resourcePositions = []
+while len(resourcePositions) < RESOURCE_COUNT:
+    resourcePositions.append(Base.randomPointWithBias(Conf.MapDimensions, resourceFocusPoints[i%10], 2.5))
+    i += 1
+
 resources = Resource.createResourcesRandomly(
-    50,
+    RESOURCE_COUNT,
     Conf.MapDimensions, 
     lambda: Resource.createOneResource(
         Conf.HashFn(),
-        Base.randomPointWithCenterBias(Conf.MapDimensions, CENTER_BIAS),
+        resourcePositions.pop(0),
         Conf.ContainedResourceFn()
     )
 )
 
 game = Game.Game(
-    Configuration=Conf,
+    Conf=Conf,
     State=Game.GameState(
         Running = True,
         Creatures=creatures,
@@ -110,16 +123,25 @@ totalActionsOverTime = [
 def plot_stuff():
     plt.clf()
 
-    graphs = []
+    graphsByFrame = []
 
     for i in range(1, len(Action.Action)+1):
-        graphs.append([
+        graphsByFrame.append([
             (gameRunner.actionDescriptions[i][j][0], gameRunner.actionDescriptions[i][j][1] / totalActionsOverTime[j]) for j in range(entrylen)
             if totalActionsOverTime[j] > 0
         ])
 
-    for i, graph in enumerate(graphs):
-        plt.plot(graph, label=str(Action.Action(i+1)).split(".")[1])
+    graphsByFrameBatch = []
+
+    for i, graph in enumerate(graphsByFrame):
+        summed_graph = []
+        for j in range(len(graph) - 10, len(graph)):
+            summed_value = sum([graph[k][1] for k in range(j, len(graph))])
+            summed_graph.append((graph[j][0], summed_value))
+        graphsByFrameBatch.append(summed_graph)
+
+    for i, graph in enumerate(graphsByFrameBatch):
+        plt.plot([(x,y*10_000) for x,y in graph], label=str(Action.Action(i+1)).split(".")[1])
 
         with open(f'data/actions/{str(Action.Action(i+1)).split(".")[1]}.csv', 'w') as f:
             for x, y in graph:
@@ -133,8 +155,6 @@ def plot_stuff():
 
     for i, k in enumerate(gameRunner.performanceData.keys()):
         plt.plot(gameRunner.performanceData[k], label=k)
-
-    # print(gameRunner.performanceData)
 
     plt.legend()
     plt.savefig('data/performance.png')

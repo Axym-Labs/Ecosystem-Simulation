@@ -34,8 +34,8 @@ class GameRunner():
         pygame.display.set_caption('Ecosystem')
         
         screenDim = (
-            self.game.Configuration.MapDimensions[0] * self.game.Configuration.TileSize, 
-            self.game.Configuration.MapDimensions[1] * self.game.Configuration.TileSize
+            self.game.Conf.MapDimensions[0] * self.game.Conf.TileSize, 
+            self.game.Conf.MapDimensions[1] * self.game.Conf.TileSize
         )
         self.screen = pygame.display.set_mode(screenDim)
         self.clock = pygame.time.Clock()
@@ -53,8 +53,6 @@ class GameRunner():
     def Update(self):
         self.frame += 1
 
-        # print(f'Frame: {self.frame}')
-
         self.clock.tick(60)
 
         for event in pygame.event.get():
@@ -68,7 +66,7 @@ class GameRunner():
         self.executeInnerGameFn(lambda: CreatureUtil.updateHealth(self.game), 'updateHealth', True)
         self.executeInnerGameFn(lambda: CreatureUtil.removeDeadCreatures(self.game), 'removeDeadCreatures', True)
 
-        self.executeInnerGameFn(lambda: ActionUtil.executeAllActions(self.game, ActionUtil.getNextActionBasedOnGenome), 'executeAllActions', True)
+        self.executeInnerGameFn(lambda: ActionUtil.executeAllActions(self.game, ActionUtil.getNextActionBasedOnGenomeRandomly), 'executeAllActions', True)
 
         self.executeInnerGameFn(lambda: ResourceUtil.render(self.game, self.screen), 'renderResources', False)
         self.executeInnerGameFn(lambda: CreatureUtil.render(self.game, self.screen), 'renderCreatures', False)
@@ -89,7 +87,7 @@ class GameRunner():
                 )
             )
 
-        if not self.game.Configuration.ForceExitCondition(self.game, self.frame):
+        if not self.game.Conf.ForceExitCondition(self.game, self.frame):
             self.lastCreatures = self.game.State.Creatures
         else:
             self.game.State.Running = False

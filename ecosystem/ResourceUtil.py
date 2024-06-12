@@ -9,12 +9,12 @@ def render(game: Game, screen: Surface):
     for resource in game.State.Resources:
         mid = resource.position.AsTupleOfFloats()
         coords = [
-            int(mid[0] * game.Configuration.TileSize), 
-            int(mid[1] * game.Configuration.TileSize),
-            game.Configuration.TileSize,
-            game.Configuration.TileSize
+            int(mid[0] * game.Conf.TileSize), 
+            int(mid[1] * game.Conf.TileSize),
+            game.Conf.TileSize,
+            game.Conf.TileSize
         ]
-        pygame.draw.rect(screen, getResourceColor(resource, game.Configuration.ResourceLength), coords)
+        pygame.draw.rect(screen, getResourceColor(resource, game.Conf.ResourceLength), coords)
 
 def getResourceColor(resource: Resource, resourceLength: int) -> tuple[int, int, int]:
     col = (
@@ -26,4 +26,4 @@ def getResourceColor(resource: Resource, resourceLength: int) -> tuple[int, int,
 
 
 def clampResource(game: Game, resource):
-    return np.clip(resource, 0, game.Configuration.MaxResourceValue)
+    return np.clip(resource, 0, game.Conf.MaxResourceValue)
