@@ -37,7 +37,7 @@ def depleteResources(game: Game):
 
 def updateHealth(game: Game):
     for i, creature in enumerate(game.State.Creatures):
-        if game.Conf.TooFewResourcesFn(game, i):
+        if game.Logic.TooFewResourcesFn(game, i):
             creature.situation.health -= game.Conf.HealthDepletionRate
         elif creature.situation.health < game.Conf.MaxHealth:
             creature.situation.health += game.Conf.HealthGainRate
@@ -45,6 +45,6 @@ def updateHealth(game: Game):
     return game
 
 def removeDeadCreatures(game: Game):
-    game.State.Creatures = [creature for i, creature in enumerate(game.State.Creatures) if not game.Conf.DeathCondition(game, i)]
+    game.State.Creatures = [creature for i, creature in enumerate(game.State.Creatures) if not game.Logic.DeathCondition(game, i)]
 
     return game

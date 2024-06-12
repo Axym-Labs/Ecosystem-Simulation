@@ -1,20 +1,18 @@
 import numpy as np
 from ecosystem.Game import Game
-from ecosystem.Base import *
+from ecosystem.Base import Point
 from typing import Callable
 import random
-import numpy as np
-from ecosystem.Game import Game
 from ecosystem import Resource
 from ecosystem import ResourceUtil
 from ecosystem import Action
 
 def IsActionValid(game: Game, creatureIndex: int, action: Action.Action) -> bool:
 
-    # TODO remove
-    if game.Conf.OtherConfig['BlockInteraction']:
-        if action in [Action.Action.NeutralExchange, Action.Action.ConstructiveExchange, Action.Action.DestructiveExchange, Action.Action.LethalExchange, Action.Action.ReproduceBiparentally]:
-            return False
+    if 'BlockInteraction' in game.Conf.OtherOptions and action in [Action.Action.NeutralExchange, Action.Action.ConstructiveExchange, Action.Action.DestructiveExchange, Action.Action.LethalExchange, Action.Action.ReproduceBiparentally]:
+        return False
+    if 'BlockProduction' in game.Conf.OtherOptions and action == Action.Action.Produce:
+        return False
 
     if action == Action.Action.Stay or action == Action.Action.Die or action == Action.Action.Produce:
         return True
@@ -61,24 +59,19 @@ def closeTo(pos1: Point, pos2: Point, maxDistance: int) -> bool:
 
 def findClosestCreatureIndex(game: Game, creatureIndex: int) -> int:
     creature = game.State.Creatures[creatureIndex]
-    other_creatures = [
-        c
-        for i, c in enumerate(game.State.Creatures)
-        if i != creatureIndex
-    ]
 
     return int(np.argmin([
-        np.linalg.norm(np.array(creature.situation.position.AsTuple()) - np.array(other_creature.situation.position.AsTuple()))
-        for other_creature in other_creatures
+        np.linalg.norm(np.array(creature.situation.position.AsTuple()) - np.array(game.State.Creatures[i].situation.position.AsTuple()))
+        for i in range(len(game.State.Creatures))
+        if i != creatureIndex
     ]))
 
 def findClosestResourceIndex(game: Game, creatureIndex: int) -> int:
-    creature = game.State.Creatures[creatureIndex]
-    resources = game.State.Resources
+    creaturePos = game.State.Creatures[creatureIndex].situation.position.AsTuple()
 
     return int(np.argmin([
-        np.linalg.norm(np.array(creature.situation.position.AsTuple()) - np.array(resource.position.AsTuple()))
-        for resource in resources
+        np.linalg.norm(np.array(creaturePos) - np.array(resource.position.AsTuple()))
+        for resource in game.State.Resources
     ]))
     
 def noOverlap(game: Game, point: Point) -> bool:
@@ -94,7 +87,7 @@ def getNextActionBasedOnGenomeRandomly(game: Game, creatureIndex: int) -> Action
     return Action.Action(actionIndex)
 
 def getNextActionBasedOnNNModel(game: Game, creatureIndex: int, dims: list[int]) -> Action.Action:
-    # TODO
+    # TODO: Implement NN model
     raise NotImplementedError('NN model not implemented.')
 
 def executeAllActions(game: Game, decisionFn: Callable):
@@ -141,7 +134,7 @@ def executeAllActions(game: Game, decisionFn: Callable):
 
         elif action == Action.Action.Reproduce:
             game.State.Creatures.append(
-                game.Conf.BornCreatureFn(game, creature)
+                game.Logic.BornCreatureFn(game, creature)
             )
 
             otherCreatureIndex = len(game.State.Creatures)-1
@@ -210,7 +203,7 @@ def executeAllActions(game: Game, decisionFn: Callable):
             shared_resources = game.State.Creatures[i].situation.resources + game.State.Creatures[otherCreatureIndex].situation.resources
 
             game.State.Creatures.append(
-                game.Conf.BiparentalBornCreatureFn(game, game.State.Creatures[i], game.State.Creatures[otherCreatureIndex], shared_resources)
+                game.Logic.BiparentalBornCreatureFn(game, game.State.Creatures[i], game.State.Creatures[otherCreatureIndex], shared_resources)
             )
 
             exchangeResources(game, i, otherCreatureIndex, game.Conf.BiparentalReproductiveInteractionDivisor)

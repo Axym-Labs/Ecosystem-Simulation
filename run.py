@@ -10,17 +10,27 @@ from ecosystem import Base
 from ecosystem import Genome
 from ecosystem import GameRunner
 
-Conf = Game.GameConfiguration(
+focusPoints = Base.FocusPoint((20, 20), 2.5, 4)
 
-    OtherConfig={"BlockInteraction": True},
-    MapDimensions=(80, 60),
+Conf = Game.GameConfiguration(
+    FPS=10,
+    OtherOptions={
+        # "DropResourcesOnDeath": False, # NOT IMPLEMENTED
+        "BlockInteraction": True, 
+        "BlockProduction": True,
+        "SpawnResources": {
+            "ProbabilityPerFrame": 0.33
+        },
+    },
+    # MapDimensions=(80, 60),
+    MapDimensions=(20, 20),
     CreatureLimit=100,
 
     ResourceDensity=0.1,
     ResourceLength=3,
     MaxResourceValue=4.0,
 
-    TileSize=10,
+    TileSize=20,
     MaxConsumptionDistance = 2,
     MaxInteractionDistance = 2,
     CreatureStepSize = 1,
@@ -35,6 +45,9 @@ Conf = Game.GameConfiguration(
     HealthDepletionRate = 0.05,
     HealthGainRate = 0.02,
     MaxHealth = 2.0,
+)
+
+Logic = Game.GameLogic(
 
     HashFn=lambda: np.random.randint(0, 1_000_000_000),
     ContainedResourceFn=lambda: np.ones(Conf.ResourceLength),
@@ -45,17 +58,23 @@ Conf = Game.GameConfiguration(
     ForceExitCondition=lambda game, frame: len(game.State.Creatures) == 0 or frame > 20_000,
 
     BornCreatureFn=lambda game, parent: Creature.createOneCreature(
-        hash=game.Configuration.HashFn(),
+        hash=game.Logic.HashFn(),
         genome=parent.base.genome,
-        resources=parent.situation.resources / game.Configuration.ReproductiveInteractionDivisor,
+        resources=parent.situation.resources / game.Conf.ReproductiveInteractionDivisor,
         position=Base.Point(parent.situation.position.x, parent.situation.position.y)
     ),
 
     BiparentalBornCreatureFn=lambda game, parent1, parent2, shared_resources: Creature.createOneCreature(
-        hash=game.Configuration.HashFn(),
+        hash=game.Logic.HashFn(),
         genome=parent1.base.genome.combineWith(parent2.base.genome),
-        resources=shared_resources / game.Configuration.BiparentalReproductiveInteractionDivisor,
+        resources=shared_resources / game.Conf.BiparentalReproductiveInteractionDivisor,
         position=Base.Point(parent1.situation.position.x, parent1.situation.position.y)
+    ),
+
+    CreateResourceFn=lambda conf, logic: Resource.createOneResource(
+        logic.HashFn(),
+        Base.randomPointWithBias(conf.MapDimensions, focusPoints.getOne(), 2.5),
+        logic.ContainedResourceFn()
     )
 )
 
@@ -65,35 +84,24 @@ creatures = Creature.createCreaturesRandomly(
     100,
     Conf.MapDimensions,
     lambda: Creature.createOneCreature(
-        Conf.HashFn(),
+        Logic.HashFn(),
         Genome.GenomeScalar(np.random.rand(len(Action.Action))),
-        Conf.ContainedResourceFn(),
+        Logic.ContainedResourceFn(),
         Base.randomPointWithCenterBias(Conf.MapDimensions, CENTER_BIAS),
     ),
 )
 
 RESOURCE_COUNT = 200
 
-resourceFocusPoints = [Base.randomPoint(Conf.MapDimensions) for _ in range(10)]
-
-i = 0
-resourcePositions = []
-while len(resourcePositions) < RESOURCE_COUNT:
-    resourcePositions.append(Base.randomPointWithBias(Conf.MapDimensions, resourceFocusPoints[i%10], 2.5))
-    i += 1
-
 resources = Resource.createResourcesRandomly(
     RESOURCE_COUNT,
     Conf.MapDimensions, 
-    lambda: Resource.createOneResource(
-        Conf.HashFn(),
-        resourcePositions.pop(0),
-        Conf.ContainedResourceFn()
-    )
+    lambda: Logic.CreateResourceFn(Conf, Logic),
 )
 
 game = Game.Game(
     Conf=Conf,
+    Logic=Logic,
     State=Game.GameState(
         Running = True,
         Creatures=creatures,
@@ -143,7 +151,7 @@ def plot_stuff():
     for i, graph in enumerate(graphsByFrameBatch):
         plt.plot([(x,y*10_000) for x,y in graph], label=str(Action.Action(i+1)).split(".")[1])
 
-        with open(f'data/actions/{str(Action.Action(i+1)).split(".")[1]}.csv', 'w') as f:
+        with open(f'data/actions/{str(Action.Action(i+1)).split(".")[1]}.csv', 'w', encoding="utf-8") as f:
             for x, y in graph:
                 f.write(f"{x},{y}\n")
 

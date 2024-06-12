@@ -38,3 +38,14 @@ def randomPointWithBias(mapDimensions: tuple[int, int], focusPoint: Point, bias:
 def randomPointWithCenterBias(mapDimensions: tuple[int, int], bias: float) -> Point:
     center = Point(x=mapDimensions[0]//2, y=mapDimensions[1]//2)
     return randomPointWithBias(mapDimensions, center, bias)
+
+class FocusPoint():
+    focusPoints: list[Point]
+    i: int = 0
+    def __init__(self, mapDimensions: tuple[int, int], bias: float, numFocusPoints: int):
+        self.focusPoints = [randomPoint(mapDimensions) for _ in range(numFocusPoints)]
+
+    def getOne(self) -> Point:
+        self.i += 1
+        return self.focusPoints[(self.i-1) % len(self.focusPoints)]
+    

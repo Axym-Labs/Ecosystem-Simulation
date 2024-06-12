@@ -8,7 +8,8 @@ from ecosystem.Resource import Resource
 
 @dataclass(frozen=True)
 class GameConfiguration:
-    OtherConfig: dict
+    FPS: int
+    OtherOptions: dict
 
     MapDimensions: tuple[int, int]
     CreatureLimit: int
@@ -33,6 +34,8 @@ class GameConfiguration:
     HealthGainRate: float
     MaxHealth: float
 
+@dataclass
+class GameLogic:
     HashFn: Callable
     ContainedResourceFn: Callable
 
@@ -43,6 +46,8 @@ class GameConfiguration:
 
     BornCreatureFn: Callable
     BiparentalBornCreatureFn: Callable
+
+    CreateResourceFn: Callable
 
 @dataclass
 class GameState():
@@ -63,5 +68,6 @@ class GameRunningConfig():
 @dataclass
 class Game():
     Conf: GameConfiguration
+    Logic: GameLogic
     State: GameState
     RunningConfig: GameRunningConfig

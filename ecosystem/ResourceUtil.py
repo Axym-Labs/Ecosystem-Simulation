@@ -1,5 +1,6 @@
 
 import pygame
+import random
 from pygame import Surface
 from ecosystem.Game import Game
 from ecosystem.Resource import Resource
@@ -24,6 +25,10 @@ def getResourceColor(resource: Resource, resourceLength: int) -> tuple[int, int,
     )
     return col
 
+def spawnResources(game: Game):
+    if random.random() < game.Conf.OtherOptions["SpawnResources"]["ProbabilityPerFrame"]:
+        game.State.Resources.append(game.Logic.CreateResourceFn(game.Conf, game.Logic))
 
 def clampResource(game: Game, resource):
     return np.clip(resource, 0, game.Conf.MaxResourceValue)
+

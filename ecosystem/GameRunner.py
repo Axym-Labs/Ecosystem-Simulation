@@ -53,7 +53,7 @@ class GameRunner():
     def Update(self):
         self.frame += 1
 
-        self.clock.tick(60)
+        self.clock.tick(self.game.Conf.FPS)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -65,6 +65,8 @@ class GameRunner():
         self.executeInnerGameFn(lambda: CreatureUtil.depleteResources(self.game), 'depleteResources', True)
         self.executeInnerGameFn(lambda: CreatureUtil.updateHealth(self.game), 'updateHealth', True)
         self.executeInnerGameFn(lambda: CreatureUtil.removeDeadCreatures(self.game), 'removeDeadCreatures', True)
+        if self.game.Conf.OtherOptions.__contains__("SpawnResources"):
+            self.executeInnerGameFn(lambda: ResourceUtil.spawnResources(self.game), 'spawnResources', False)
 
         self.executeInnerGameFn(lambda: ActionUtil.executeAllActions(self.game, ActionUtil.getNextActionBasedOnGenomeRandomly), 'executeAllActions', True)
 
@@ -87,7 +89,7 @@ class GameRunner():
                 )
             )
 
-        if not self.game.Conf.ForceExitCondition(self.game, self.frame):
+        if not self.game.Logic.ForceExitCondition(self.game, self.frame):
             self.lastCreatures = self.game.State.Creatures
         else:
             self.game.State.Running = False
