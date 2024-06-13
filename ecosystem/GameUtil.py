@@ -21,6 +21,8 @@ def printStats(game: Game, frame: int, lastCreatures: list[Creature]):
     print("    Age: "  + str(sum([c.situation.health for c in lastCreatures]) / len(lastCreatures)))
     print("    Resources: " + str(sum([c.situation.resources.sum() for c in lastCreatures]) / len(lastCreatures)))
 
+
+    #  TODO fix this: action is empty but c.actionDescriptions is not
     actions = []
     for c in lastCreatures:
         actions += c.actionDescriptions[:-50]
