@@ -6,8 +6,8 @@ from ecosystem import Action
 def printStats(game: Game, frame: int, lastCreatures: list[Creature]):
     print('Frame: ' + str(frame))
     print('Creatures: ' + str(len(lastCreatures)))
-    # print('Resources: ' + str(len(game.State.Resources)))
-    
+    print('Resources: ' + str(len(game.State.Resources)))
+
     # if len(lastCreatures) > 0:
     #     print("Average Creature Resources: " + str(sum([c.situation.resources for c in lastCreatures]) / len(lastCreatures)))
     #     print("Average Creature Health: " + str(sum([c.situation.health for c in lastCreatures]) / len(lastCreatures)))
@@ -16,13 +16,25 @@ def printStats(game: Game, frame: int, lastCreatures: list[Creature]):
     # else:
     #     print("No creatures left to display info of.")
 
-    if len(lastCreatures) > 0:
-        print("Average genome")
+    print("Average creature stats:")
+    print("    Health: " + str(sum([c.situation.health for c in lastCreatures]) / len(lastCreatures)))
+    print("    Age: "  + str(sum([c.situation.health for c in lastCreatures]) / len(lastCreatures)))
+    print("    Resources: " + str(sum([c.situation.resources.sum() for c in lastCreatures]) / len(lastCreatures)))
 
-        for i in range(len(Action.Action)):
-            print(f"Gene {i} (Action {Action.Action(i+1)}): {sum([c.base.genome.genes[i] for c in lastCreatures]) / len(lastCreatures)}")
+    actions = []
+    for c in lastCreatures:
+        actions += c.actionDescriptions[:-50]
 
-    print("-" * 20)
+    actionsByCount = {
+        a: actions.count(a) for a in set(actions)
+    }
+
+    print("Actions by frequency (50 last frames)")
+
+    for k, v in actionsByCount.items():
+        print(f"{k}: {v}")
+
+    print("-" * 30)
 
 
 def printWinnerInfo(game: Game, frame: int, lastCreatures: list[Creature]):

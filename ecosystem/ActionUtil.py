@@ -18,7 +18,7 @@ def IsActionValid(game: Game, creatureIndex: int, action: Action.Action) -> bool
         return True
 
     elif action == Action.Action.Reproduce:
-        return len(game.State.Creatures) < game.Conf.CreatureLimit
+        return len(game.State.Creatures) < game.Conf.CreatureLimit and game.State.Creatures[creatureIndex].situation.resources.sum() > game.Conf.MinResourcesForReproduction
 
     elif action == Action.Action.Consume:
         resourceIndex = findClosestResourceIndex(game, creatureIndex)
@@ -45,9 +45,12 @@ def IsActionValid(game: Game, creatureIndex: int, action: Action.Action) -> bool
             return game.State.Creatures[creatureIndex].situation.position.y < game.Conf.MapDimensions[1] -1 and noOverlap(game, stepDownPos)
 
     elif action in [Action.Action.NeutralExchange, Action.Action.ConstructiveExchange, Action.Action.DestructiveExchange, Action.Action.LethalExchange, Action.Action.ReproduceBiparentally]:
+        if len(game.State.Creatures) == 1:
+            return False
+        
         otherCreatureIndex = findClosestCreatureIndex(game, creatureIndex)
 
-        if action == Action.Action.ReproduceBiparentally and not len(game.State.Creatures) < game.Conf.CreatureLimit:
+        if action == Action.Action.ReproduceBiparentally and not len(game.State.Creatures) < game.Conf.CreatureLimit and not game.State.Creatures[creatureIndex].situation.resources.sum() > game.Conf.MinResourcesForReproduction:
             return False
         
         return closeTo(game.State.Creatures[creatureIndex].situation.position, game.State.Creatures[otherCreatureIndex].situation.position, game.Conf.MaxInteractionDistance)
@@ -58,6 +61,8 @@ def closeTo(pos1: Point, pos2: Point, maxDistance: int) -> bool:
     return bool(np.linalg.norm(np.array(pos1.AsTuple()) - np.array(pos2.AsTuple())) < maxDistance)
 
 def findClosestCreatureIndex(game: Game, creatureIndex: int) -> int:
+    assert len(game.State.Creatures) > 1, "No other creature"
+
     creature = game.State.Creatures[creatureIndex]
 
     return int(np.argmin([
@@ -103,7 +108,7 @@ def executeAllActions(game: Game):
             i = 0
             while not IsActionValid(game, i, ambiguousActionObject[i]):
                 i += 1
-                
+
             action = ambiguousActionObject[i]
 
         creature.actionDescriptions.append(str(action))

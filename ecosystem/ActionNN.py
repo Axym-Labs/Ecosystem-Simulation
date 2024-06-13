@@ -59,8 +59,6 @@ def getNextActionBasedOnNNModel(game: Game.Game, creatureIndex: int, hiddenLayer
             end = start + nodeCount * len(data)
             weights = genome[start:end]
 
-            print(f"dot product between {', '.join([str(weights[k]) + ' and ' + str(len(data)) for k in range(nodeCount)])}")
-
             data = np.array([
                 np.sum(np.dot(data, weights[k])) 
                 for k in range(nodeCount)
@@ -70,5 +68,5 @@ def getNextActionBasedOnNNModel(game: Game.Game, creatureIndex: int, hiddenLayer
 
         output += data
 
-    actionIndices = sorted([i for i in range(len(Action.Action))], reverse=True, key=lambda action: output[action.value-1])
-    return [Action.Action(i) for i in actionIndices]
+    actionIndices = sorted([i for i in range(len(Action.Action))], reverse=True, key=lambda i: output[i])
+    return [Action.Action(i+1) for i in actionIndices]

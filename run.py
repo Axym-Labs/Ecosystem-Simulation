@@ -6,27 +6,28 @@ from ecosystem import Action
 from ecosystem import ActionNN
 from ecosystem import Creature
 from ecosystem import Game
+from ecosystem import GameUtil
 from ecosystem import Resource
 from ecosystem import Base
 from ecosystem import Genome
 from ecosystem import GameRunner
 
-focusPoints = Base.FocusPoint((20, 20), 4)
+focusPoints = Base.FocusPoint((40, 40), 4)
 
 Conf = Game.GameConfiguration(
     FrameWaitTime=10,
     OtherOptions={
         # "DropResourcesOnDeath": False, # NOT IMPLEMENTED
-        "BlockInteraction": True, 
-        "BlockProduction": True,
+        # "BlockInteraction": True, 
+        # "BlockProduction": True,
         "SpawnResources": {
-            "ProbabilityPerFrame": 0.33
+            "ProbabilityPerFrame": 0.2
         },
         "SimpleNNModel-1": {
             "LookBlockRadius": 2
         }
     },
-    MapDimensions=(20, 20),
+    MapDimensions=(40, 40),
     CreatureLimit=100,
 
     ResourceDensity=0.2,
@@ -45,8 +46,8 @@ Conf = Game.GameConfiguration(
     BiparentalReproductiveInteractionDivisor = 4,
 
     ResourceDepletionRate = 0.04,
-    HealthDepletionRate = 0.05,
-    HealthGainRate = 0.02,
+    HealthDepletionRate = 0.02,
+    HealthGainRate = 0.01,
     MaxHealth = 2.0,
 
     DecisionFnType=Base.DecisionFnType.GetAllActionsSorted
@@ -58,35 +59,39 @@ Logic = Game.GameLogic(
     HashFn=lambda: np.random.randint(0, 1_000_000_000),
     ContainedResourceFn=lambda: np.ones(Conf.ResourceLength),
 
-    DeathCondition=lambda game, i: game.State.Creatures[i].situation.health <= 0 or (game.State.Creatures[i].situation.age > 100 and random.random() < 0.1),
-    TooFewResourcesFn=lambda game, i: game.State.Creatures[i].situation.resources.sum() < 1,
+    DeathCondition=lambda game, i: game.State.Creatures[i].situation.health <= 0 or (game.State.Creatures[i].situation.age > 50 and random.random() < 0.1),
+    TooFewResourcesFn=lambda game, i: game.State.Creatures[i].situation.resources.sum() < 0,
     DecisionFn=lambda game, creatureIndex: ActionNN.getNextActionBasedOnNNModel(game, creatureIndex, []),
 
     BornCreatureFn=lambda game, parent: Creature.createOneCreature(
         hash=game.Logic.HashFn(),
         genome=parent.base.genome,
-        resources=parent.situation.resources / game.Conf.ReproductiveInteractionDivisor,
-        position=Base.Point(parent.situation.position.x, parent.situation.position.y)
+        resources=np.zeros(game.Conf.ResourceLength),
+        position=Base.Point(parent.situation.position.x, parent.situation.position.y),
+        health=0.5
     ),
 
     BiparentalBornCreatureFn=lambda game, parent1, parent2, shared_resources: Creature.createOneCreature(
         hash=game.Logic.HashFn(),
         genome=parent1.base.genome.combineWith(parent2.base.genome),
         resources=shared_resources / game.Conf.BiparentalReproductiveInteractionDivisor,
-        position=Base.Point(parent1.situation.position.x, parent1.situation.position.y)
+        position=Base.Point(parent1.situation.position.x, parent1.situation.position.y),
+        health=0.5
     ),
 
     CreateResourceFn=lambda conf, logic: Resource.createOneResource(
         hash=logic.HashFn(),
         position=Base.randomPointWithBias(conf.MapDimensions, focusPoints.getOne(), 2.5),
         resourceDistribution=logic.ContainedResourceFn()
-    )
+    ),
+
+    SummaryFn=GameUtil.printStats
 )
 
 CENTER_BIAS = 8
 
 creatures = Creature.createCreaturesRandomly(
-    5,
+    200,
     Conf.MapDimensions,
     lambda: Creature.createOneCreature(
         Logic.HashFn(),
@@ -95,10 +100,11 @@ creatures = Creature.createCreaturesRandomly(
         ),
         Logic.ContainedResourceFn(),
         Base.randomPointWithCenterBias(Conf.MapDimensions, CENTER_BIAS),
+        0.1
     ),
 )
 
-RESOURCE_COUNT = 200
+RESOURCE_COUNT = 400
 
 resources = Resource.createResourcesRandomly(
     RESOURCE_COUNT,

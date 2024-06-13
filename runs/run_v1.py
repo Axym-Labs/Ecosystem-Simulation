@@ -6,6 +6,7 @@ from ecosystem import Action
 from ecosystem import ActionUtil
 from ecosystem import Creature
 from ecosystem import Game
+from ecosystem import GameUtil
 from ecosystem import Resource
 from ecosystem import Base
 from ecosystem import Genome
@@ -64,21 +65,25 @@ Logic = Game.GameLogic(
         hash=game.Logic.HashFn(),
         genome=parent.base.genome,
         resources=parent.situation.resources / game.Conf.ReproductiveInteractionDivisor,
-        position=Base.Point(parent.situation.position.x, parent.situation.position.y)
+        position=Base.Point(parent.situation.position.x, parent.situation.position.y),
+        health=0.1
     ),
 
     BiparentalBornCreatureFn=lambda game, parent1, parent2, shared_resources: Creature.createOneCreature(
         hash=game.Logic.HashFn(),
         genome=parent1.base.genome.combineWith(parent2.base.genome),
         resources=shared_resources / game.Conf.BiparentalReproductiveInteractionDivisor,
-        position=Base.Point(parent1.situation.position.x, parent1.situation.position.y)
+        position=Base.Point(parent1.situation.position.x, parent1.situation.position.y),
+        health=0.1
     ),
 
     CreateResourceFn=lambda conf, logic: Resource.createOneResource(
         hash=logic.HashFn(),
         position=Base.randomPointWithBias(conf.MapDimensions, focusPoints.getOne(), 2.5),
         resourceDistribution=logic.ContainedResourceFn()
-    )
+    ),
+
+    SummaryFn=GameUtil.printStats
 )
 
 CENTER_BIAS = 8
@@ -91,6 +96,7 @@ creatures = Creature.createCreaturesRandomly(
         Genome.NDGenome(np.random.rand(len(Action.Action))),
         Logic.ContainedResourceFn(),
         Base.randomPointWithCenterBias(Conf.MapDimensions, CENTER_BIAS),
+        0.1
     ),
 )
 

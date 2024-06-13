@@ -36,8 +36,9 @@ class GameConfiguration:
     HealthDepletionRate: float
     HealthGainRate: float
     MaxHealth: float
-
     DecisionFnType: Base.DecisionFnType
+
+    MinResourcesForReproduction: float = 0.1
 
 @dataclass
 class GameLogic:
@@ -53,6 +54,8 @@ class GameLogic:
     BiparentalBornCreatureFn: Callable
 
     CreateResourceFn: Callable
+
+    SummaryFn: Callable
 
 @dataclass
 class GameState():

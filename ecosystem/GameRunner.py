@@ -76,7 +76,7 @@ class GameRunner():
         pygame.display.flip()
 
         if self.frame % 100 == 0 and self.game.RunningConfig.PrintStats:
-            GameUtil.printStats(self.game, self.frame, self.lastCreatures)
+            self.game.Logic.SummaryFn(self.game, self.frame, self.lastCreatures)
 
         for i in range(1, len(Action.Action)+1):
             if i not in self.actionDescriptions:
