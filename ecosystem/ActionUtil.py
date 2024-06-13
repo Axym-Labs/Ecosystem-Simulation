@@ -1,8 +1,8 @@
-import numpy as np
-from ecosystem.Game import Game
-from ecosystem.Base import Point
 from typing import Callable
 import random
+import numpy as np
+from ecosystem.Game import Game
+from ecosystem.Base import Point, DecisionFnType
 from ecosystem import Resource
 from ecosystem import ResourceUtil
 from ecosystem import Action
@@ -86,19 +86,25 @@ def getNextActionBasedOnGenomeRandomly(game: Game, creatureIndex: int) -> Action
     actionIndex = int(np.random.choice(options, p=creature.base.genome.genes / creature.base.genome.genes.sum()))
     return Action.Action(actionIndex)
 
-def getNextActionBasedOnNNModel(game: Game, creatureIndex: int, dims: list[int]) -> Action.Action:
-    # TODO: Implement NN model
-    raise NotImplementedError('NN model not implemented.')
-
-def executeAllActions(game: Game, decisionFn: Callable):
+def executeAllActions(game: Game):
 
     creaturesToRemove = []
 
     for i, creature in enumerate(game.State.Creatures):
-        action = decisionFn(game, i)
 
-        while not IsActionValid(game, i, action):
-            action = decisionFn(game, i)
+        ambiguousActionObject = game.Logic.DecisionFn(game, i)
+        action = None
+        if game.Conf.DecisionFnType == DecisionFnType.GetOneAction: 
+            action = ambiguousActionObject
+
+            while not IsActionValid(game, i, action):
+                action = game.Logic.DecisionFn(game, i)
+        elif game.Conf.DecisionFnType == DecisionFnType.GetAllActionsSorted:
+            i = 0
+            while not IsActionValid(game, i, ambiguousActionObject[i]):
+                i += 1
+                
+            action = ambiguousActionObject[i]
 
         creature.actionDescriptions.append(str(action))
         

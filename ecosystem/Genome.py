@@ -1,13 +1,13 @@
 import numpy as np
 
-class GenomeScalar:
+class NDGenome:
     genes: np.ndarray
 
     def __init__(self, genes: np.ndarray):
         self.genes = genes
 
     def combineWith(self, other):
-        return GenomeScalar(self.genes + other.genes) / 2
+        return NDGenome(self.genes + other.genes) / 2
 
     def __add__(self, other):
         self.genes += other

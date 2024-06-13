@@ -2,13 +2,13 @@ from typing import NamedTuple
 import numpy as np
 from dataclasses import dataclass
 from dataclasses import field
-from ecosystem.Genome import GenomeScalar
+from ecosystem.Genome import NDGenome
 from typing import Callable
 from ecosystem.Base import *
 
 @dataclass(frozen=True)
 class CreatureBasis():
-    genome: GenomeScalar
+    genome: NDGenome
     
 @dataclass()
 class CreatureSituation():
@@ -26,7 +26,7 @@ class Creature():
     situation: CreatureSituation
     actionDescriptions: list[str]
     
-def createOneCreature(hash: int, genome: GenomeScalar, resources: np.ndarray, position: Point) -> Creature:
+def createOneCreature(hash: int, genome: NDGenome, resources: np.ndarray, position: Point) -> Creature:
     return Creature(
         hash,
         CreatureBasis(

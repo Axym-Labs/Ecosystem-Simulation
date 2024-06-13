@@ -3,7 +3,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from ecosystem import Action
-from ecosystem import ActionNN
+from ecosystem import ActionUtil
 from ecosystem import Creature
 from ecosystem import Game
 from ecosystem import Resource
@@ -22,10 +22,8 @@ Conf = Game.GameConfiguration(
         "SpawnResources": {
             "ProbabilityPerFrame": 0.33
         },
-        "SimpleNNModel-1": {
-            "LookBlockRadius": 2
-        }
     },
+    # MapDimensions=(80, 60),
     MapDimensions=(20, 20),
     CreatureLimit=100,
 
@@ -49,7 +47,7 @@ Conf = Game.GameConfiguration(
     HealthGainRate = 0.02,
     MaxHealth = 2.0,
 
-    DecisionFnType=Base.DecisionFnType.GetAllActionsSorted
+    DecisionFnType=Base.DecisionFnType.GetOneAction
 )
 
 Logic = Game.GameLogic(
@@ -60,7 +58,7 @@ Logic = Game.GameLogic(
 
     DeathCondition=lambda game, i: game.State.Creatures[i].situation.health <= 0 or (game.State.Creatures[i].situation.age > 100 and random.random() < 0.1),
     TooFewResourcesFn=lambda game, i: game.State.Creatures[i].situation.resources.sum() < 1,
-    DecisionFn=lambda game, creatureIndex: ActionNN.getNextActionBasedOnNNModel(game, creatureIndex, []),
+    DecisionFn=ActionUtil.getNextActionBasedOnGenomeRandomly,
 
     BornCreatureFn=lambda game, parent: Creature.createOneCreature(
         hash=game.Logic.HashFn(),
@@ -86,13 +84,11 @@ Logic = Game.GameLogic(
 CENTER_BIAS = 8
 
 creatures = Creature.createCreaturesRandomly(
-    5,
+    100,
     Conf.MapDimensions,
     lambda: Creature.createOneCreature(
         Logic.HashFn(),
-        Genome.NDGenome(
-            np.random.rand(252)
-        ),
+        Genome.NDGenome(np.random.rand(len(Action.Action))),
         Logic.ContainedResourceFn(),
         Base.randomPointWithCenterBias(Conf.MapDimensions, CENTER_BIAS),
     ),
@@ -175,4 +171,4 @@ def plot_stuff():
     plt.savefig('data/performance.png')
     plt.show()
 
-# plot_stuff()
+plot_stuff()

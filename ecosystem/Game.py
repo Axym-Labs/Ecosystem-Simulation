@@ -1,14 +1,17 @@
 import numpy as np
 import time
 import pygame
+from enum import Enum
 from typing import Callable
 from dataclasses import dataclass
 from ecosystem.Creature import Creature
 from ecosystem.Resource import Resource
+from ecosystem import Base
+
 
 @dataclass(frozen=True)
 class GameConfiguration:
-    FPS: int
+    FrameWaitTime: int
     OtherOptions: dict
 
     MapDimensions: tuple[int, int]
@@ -34,15 +37,17 @@ class GameConfiguration:
     HealthGainRate: float
     MaxHealth: float
 
+    DecisionFnType: Base.DecisionFnType
+
 @dataclass
 class GameLogic:
     HashFn: Callable
-    ContainedResourceFn: Callable
+    ForceExitCondition: Callable
 
+    ContainedResourceFn: Callable
     DeathCondition: Callable
     TooFewResourcesFn: Callable
-
-    ForceExitCondition: Callable
+    DecisionFn: Callable
 
     BornCreatureFn: Callable
     BiparentalBornCreatureFn: Callable

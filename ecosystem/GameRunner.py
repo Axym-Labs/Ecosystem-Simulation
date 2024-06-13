@@ -53,7 +53,7 @@ class GameRunner():
     def Update(self):
         self.frame += 1
 
-        self.clock.tick(self.game.Conf.FPS)
+        self.clock.tick(self.game.Conf.FrameWaitTime)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -68,7 +68,7 @@ class GameRunner():
         if self.game.Conf.OtherOptions.__contains__("SpawnResources"):
             self.executeInnerGameFn(lambda: ResourceUtil.spawnResources(self.game), 'spawnResources', False)
 
-        self.executeInnerGameFn(lambda: ActionUtil.executeAllActions(self.game, ActionUtil.getNextActionBasedOnGenomeRandomly), 'executeAllActions', True)
+        self.executeInnerGameFn(lambda: ActionUtil.executeAllActions(self.game), 'executeAllActions', True)
 
         self.executeInnerGameFn(lambda: ResourceUtil.render(self.game, self.screen), 'renderResources', False)
         self.executeInnerGameFn(lambda: CreatureUtil.render(self.game, self.screen), 'renderCreatures', False)
