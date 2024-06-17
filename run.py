@@ -12,7 +12,9 @@ from ecosystem import Base
 from ecosystem import Genome
 from ecosystem import GameRunner
 
-focusPoints = Base.FocusPoint((40, 40), 4)
+DIMS = (40, 40)
+focusPoints = Base.FocusPoint(DIMS, 4)
+pointsIterator = Base.AllPointsIterator(DIMS, allowAfterEnd=True)
 
 Conf = Game.GameConfiguration(
     FrameWaitTime=10,
@@ -20,14 +22,15 @@ Conf = Game.GameConfiguration(
         # "DropResourcesOnDeath": False, # NOT IMPLEMENTED
         # "BlockInteraction": True, 
         # "BlockProduction": True,
+        "AllowActionsExclusively": [Action.Action.Stay, Action.Action.MoveSomeWhere, Action.Action.Consume],
         "SpawnResources": {
             "ProbabilityPerFrame": 0.2
         },
         "SimpleNNModel-1": {
-            "LookBlockRadius": 2
+            "LookBlockRadius": 1,
         }
     },
-    MapDimensions=(40, 40),
+    MapDimensions=DIMS,
     CreatureLimit=100,
 
     ResourceDensity=0.2,
@@ -45,9 +48,9 @@ Conf = Game.GameConfiguration(
     ReproductiveInteractionDivisor = 4,
     BiparentalReproductiveInteractionDivisor = 4,
 
-    ResourceDepletionRate = 0.04,
+    ResourceDepletionRate = 0.02,
     HealthDepletionRate = 0.02,
-    HealthGainRate = 0.01,
+    HealthGainRate = 0.04,
     MaxHealth = 2.0,
 
     DecisionFnType=Base.DecisionFnType.GetAllActionsSorted
@@ -81,7 +84,8 @@ Logic = Game.GameLogic(
 
     CreateResourceFn=lambda conf, logic: Resource.createOneResource(
         hash=logic.HashFn(),
-        position=Base.randomPointWithBias(conf.MapDimensions, focusPoints.getOne(), 2.5),
+        # position=Base.randomPointWithBias(conf.MapDimensions, focusPoints.getOne(), 2.5),
+        position=pointsIterator.__next__(), 
         resourceDistribution=logic.ContainedResourceFn()
     ),
 
@@ -96,7 +100,10 @@ creatures = Creature.createCreaturesRandomly(
     lambda: Creature.createOneCreature(
         Logic.HashFn(),
         Genome.NDGenome(
-            np.random.rand(252)
+            # block radius one
+            np.random.rand(112)
+            # block radius two
+            # np.random.rand(252)
         ),
         Logic.ContainedResourceFn(),
         Base.randomPointWithCenterBias(Conf.MapDimensions, CENTER_BIAS),
@@ -104,7 +111,7 @@ creatures = Creature.createCreaturesRandomly(
     ),
 )
 
-RESOURCE_COUNT = 400
+RESOURCE_COUNT = DIMS[0] * DIMS[1] # 400
 
 resources = Resource.createResourcesRandomly(
     RESOURCE_COUNT,

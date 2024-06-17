@@ -3,7 +3,7 @@ from ecosystem import Game
 from ecosystem import Base
 from ecosystem import Action
 
-def encodeSurroundingEnvironment(game: Game.Game, creatureIndex: int, blockRadius: int) -> list[np.ndarray]:
+def encodeEnvironment(game: Game.Game, creatureIndex: int, blockRadius: int) -> list[np.ndarray]:
     x_start, x_end, y_start, y_end = Base.MapBoundariesAroundPosition(game.Conf.MapDimensions, game.State.Creatures[creatureIndex].situation.position, blockRadius)
 
     cArr = np.ndarray((x_end - x_start +1, y_end - y_start +1))
@@ -40,7 +40,7 @@ def getNextActionBasedOnNNModel(game: Game.Game, creatureIndex: int, hiddenLayer
 
     assert layers[0] == (lookRadius+1) ** 2, f"Input layer must have the same number of neurons as the blocks visibile to the creature: is {layers[0]}, should have been {(lookRadius+1) ** 2}"
 
-    environmentArr = encodeSurroundingEnvironment(game, creatureIndex, lookRadius)
+    environmentArr = encodeEnvironment(game, creatureIndex, lookRadius)
 
     # len(environmentArr): each data has its own nn, the results will be aggregated
     # sum(layers): each layer needs 
@@ -67,6 +67,10 @@ def getNextActionBasedOnNNModel(game: Game.Game, creatureIndex: int, hiddenLayer
             start = end
 
         output += data
+    
+    # TODO: add softmax
+    # TODO: add bias
+    # TODO: add creature state
 
     actionIndices = sorted([i for i in range(len(Action.Action))], reverse=True, key=lambda i: output[i])
     return [Action.Action(i+1) for i in actionIndices]

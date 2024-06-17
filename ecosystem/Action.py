@@ -22,3 +22,5 @@ class Action(Enum):
     DestructiveExchange = 12
     LethalExchange = 13
     ReproduceBiparentally = 14
+
+    MoveSomeWhere = 15

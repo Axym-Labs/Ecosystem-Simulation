@@ -1,7 +1,5 @@
-import functools
 from ecosystem.Game import Game
 from ecosystem.Creature import Creature
-from ecosystem import Action
 
 def printStats(game: Game, frame: int, lastCreatures: list[Creature]):
     print('Frame: ' + str(frame))

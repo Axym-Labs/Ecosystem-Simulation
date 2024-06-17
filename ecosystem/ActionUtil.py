@@ -14,6 +14,9 @@ def IsActionValid(game: Game, creatureIndex: int, action: Action.Action) -> bool
     if 'BlockProduction' in game.Conf.OtherOptions and action == Action.Action.Produce:
         return False
 
+    if 'AllowActionsExclusively' in game.Conf.OtherOptions and action not in game.Conf.OtherOptions['AllowActionsExclusively']:
+        return False
+    
     if action == Action.Action.Stay or action == Action.Action.Die or action == Action.Action.Produce:
         return True
 
@@ -24,25 +27,27 @@ def IsActionValid(game: Game, creatureIndex: int, action: Action.Action) -> bool
         resourceIndex = findClosestResourceIndex(game, creatureIndex)
         return closeTo(game.State.Creatures[creatureIndex].situation.position, game.State.Resources[resourceIndex].position, game.Conf.MaxConsumptionDistance)
 
-    elif action in [Action.Action.MoveLeft, Action.Action.MoveRight, Action.Action.MoveUp, Action.Action.MoveDown]:
+    elif action in [Action.Action.MoveLeft, Action.Action.MoveRight, Action.Action.MoveUp, Action.Action.MoveDown, Action.Action.MoveSomeWhere]:
         creature = game.State.Creatures[creatureIndex]
         step = game.Conf.CreatureStepSize
 
         if action == Action.Action.MoveLeft:
-            stepLeftPos = Point(creature.situation.position.x - step, creature.situation.position.y)
-            return game.State.Creatures[creatureIndex].situation.position.x > 0 and noOverlap(game, stepLeftPos)
+            return moveLeftAllowed(game, creatureIndex)
         
-        if action == Action.Action.MoveRight:
-            stepRightPos = Point(creature.situation.position.x + step, creature.situation.position.y)
-            return game.State.Creatures[creatureIndex].situation.position.x < game.Conf.MapDimensions[0] -1 and noOverlap(game, stepRightPos)
+        elif action == Action.Action.MoveRight:
+            return moveRightAllowed(game, creatureIndex)
 
-        if action == Action.Action.MoveUp:
-            stepUpPos = Point(creature.situation.position.x, creature.situation.position.y - step)
-            return game.State.Creatures[creatureIndex].situation.position.y > 0 and noOverlap(game, stepUpPos)
-
-        if action == Action.Action.MoveDown:
-            stepDownPos = Point(creature.situation.position.x, creature.situation.position.y + step)
-            return game.State.Creatures[creatureIndex].situation.position.y < game.Conf.MapDimensions[1] -1 and noOverlap(game, stepDownPos)
+        elif action == Action.Action.MoveUp:
+            return moveUpAllowed(game, creatureIndex)
+        
+        elif action == Action.Action.MoveDown:
+            return moveDownAllowed(game, creatureIndex)
+        
+        elif action == Action.Action.MoveSomeWhere:
+            return moveUpAllowed(game, creatureIndex) \
+                or moveDownAllowed(game, creatureIndex) \
+                or moveLeftAllowed(game, creatureIndex) \
+                or moveRightAllowed(game, creatureIndex)
 
     elif action in [Action.Action.NeutralExchange, Action.Action.ConstructiveExchange, Action.Action.DestructiveExchange, Action.Action.LethalExchange, Action.Action.ReproduceBiparentally]:
         if len(game.State.Creatures) == 1:
@@ -56,6 +61,39 @@ def IsActionValid(game: Game, creatureIndex: int, action: Action.Action) -> bool
         return closeTo(game.State.Creatures[creatureIndex].situation.position, game.State.Creatures[otherCreatureIndex].situation.position, game.Conf.MaxInteractionDistance)
 
     raise NotImplementedError(f"Action {action} not implemented.")
+
+def moveUpAllowed(game: Game, creatureIndex: int) -> bool:
+    return game.State.Creatures[creatureIndex].situation.position.y > 0 \
+        and noOverlap(
+            game, 
+            Point(game.State.Creatures[creatureIndex].situation.position.x, 
+            game.State.Creatures[creatureIndex].situation.position.y - game.Conf.CreatureStepSize)
+        )
+
+def moveDownAllowed(game: Game, creatureIndex: int) -> bool:
+    return game.State.Creatures[creatureIndex].situation.position.y < game.Conf.MapDimensions[1] -1 \
+        and noOverlap(
+            game, 
+            Point(game.State.Creatures[creatureIndex].situation.position.x, 
+            game.State.Creatures[creatureIndex].situation.position.y + game.Conf.CreatureStepSize)
+        )
+
+def moveLeftAllowed(game: Game, creatureIndex: int) -> bool:
+    return game.State.Creatures[creatureIndex].situation.position.x > 0 \
+        and noOverlap(
+            game, 
+            Point(game.State.Creatures[creatureIndex].situation.position.x - game.Conf.CreatureStepSize, 
+            game.State.Creatures[creatureIndex].situation.position.y)
+        )
+
+def moveRightAllowed(game: Game, creatureIndex: int) -> bool:
+    return game.State.Creatures[creatureIndex].situation.position.x < game.Conf.MapDimensions[0] -1 \
+        and noOverlap(
+            game, 
+            Point(game.State.Creatures[creatureIndex].situation.position.x + game.Conf.CreatureStepSize, 
+            game.State.Creatures[creatureIndex].situation.position.y)
+        )
+
 
 def closeTo(pos1: Point, pos2: Point, maxDistance: int) -> bool:
     return bool(np.linalg.norm(np.array(pos1.AsTuple()) - np.array(pos2.AsTuple())) < maxDistance)
@@ -96,6 +134,7 @@ def executeAllActions(game: Game):
     creaturesToRemove = []
 
     for i, creature in enumerate(game.State.Creatures):
+        creature = game.State.Creatures[i]
 
         ambiguousActionObject = game.Logic.DecisionFn(game, i)
         action = None
@@ -104,12 +143,15 @@ def executeAllActions(game: Game):
 
             while not IsActionValid(game, i, action):
                 action = game.Logic.DecisionFn(game, i)
-        elif game.Conf.DecisionFnType == DecisionFnType.GetAllActionsSorted:
-            i = 0
-            while not IsActionValid(game, i, ambiguousActionObject[i]):
-                i += 1
 
-            action = ambiguousActionObject[i]
+        elif game.Conf.DecisionFnType == DecisionFnType.GetAllActionsSorted:
+            actionsSorted = ambiguousActionObject
+            
+            j = 0
+            while not IsActionValid(game, i, actionsSorted[j]):
+                j += 1
+
+            action = actionsSorted[j]
 
         creature.actionDescriptions.append(str(action))
         
@@ -163,7 +205,9 @@ def executeAllActions(game: Game):
             game.State.Creatures[i].situation.position.y -= game.Conf.CreatureStepSize
         elif action == Action.Action.MoveDown:
             game.State.Creatures[i].situation.position.y += game.Conf.CreatureStepSize
-
+        elif action == Action.Action.MoveSomeWhere:
+            raise NotImplementedError('MoveSomeWhere not implemented.')
+        
         elif action == Action.Action.NeutralExchange:
             otherCreatureIndex = findClosestCreatureIndex(game, i)
             game = exchangeResources(game, i, otherCreatureIndex, 2)

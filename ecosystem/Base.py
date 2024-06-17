@@ -66,4 +66,25 @@ class FocusPoint():
     def getOne(self) -> Point:
         self.i += 1
         return self.focusPoints[(self.i-1) % len(self.focusPoints)]
+
+class AllPointsIterator():
+    dims: tuple[int, int]
+    i: int
+    allowAfterEnd: bool
+
+    def __init__(self, dims: tuple[int, int], allowAfterEnd: bool = False):
+        self.dims = dims
+        self.i = 0
+        self.allowAfterEnd = allowAfterEnd
+
+    def __iter__(self):
+        self.i = 0
+        return self
     
+    def __next__(self):
+        if self.i <= int(self.dims[0] * self.dims[1]) or self.allowAfterEnd:
+            self.i += 1
+            return Point(self.i % self.dims[0], self.i // self.dims[0])
+        else:  
+            raise StopIteration("end of iteration at index " + str(self.i))
+        
